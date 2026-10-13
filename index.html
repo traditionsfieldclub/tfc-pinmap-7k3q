@@ -8,8 +8,12 @@
 <div id="hint">Tap the map to drop a pin and name it (e.g. Riverside 1, 5-Stand, Pavilion). Drag to move. Tap a pin to rename or delete. Pins save on this device.</div>
 <script>
 const m=L.map('m').setView([32.8979,-80.8546],15);
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:19,attribution:'Imagery © Esri, Maxar, Earthstar Geographics'}).addTo(m);
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:19}).addTo(m);
+const esri=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:19,attribution:'Imagery © Esri, Vantor/Maxar (captured Sep 14, 2022)'});
+const NaipL=L.TileLayer.extend({getTileUrl:function(c){const s=40075016.686/Math.pow(2,c.z),x0=-20037508.343+c.x*s,y1=20037508.343-c.y*s;return 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage?bbox='+x0+','+(y1-s)+','+(x0+s)+','+y1+'&bboxSR=3857&imageSR=3857&size=256,256&format=jpg&f=image'}});
+const naip=new NaipL('',{maxZoom:20,maxNativeZoom:18,attribution:'USDA NAIP via USGS (captured May 2, 2023)'});
+const labels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:19});
+naip.addTo(m);labels.addTo(m);let nerr=0;naip.on('tileerror',()=>{if(++nerr==4&&m.hasLayer(naip)){m.removeLayer(naip);esri.addTo(m);alert('USDA 2023 imagery server is not responding, showing Esri 2022 instead.')}});
+L.control.layers({'USDA NAIP, May 2023 (newest)':naip,'Esri World Imagery, Sep 2022':esri},{'Labels':labels},{position:'topleft'}).addTo(m);
 let pins=JSON.parse(localStorage.getItem('tfcPins')||'[]'),mk={};
 const save=()=>localStorage.setItem('tfcPins',JSON.stringify(pins));
 function draw(p){const k=L.marker([p.lat,p.lng],{draggable:true}).addTo(m).bindTooltip(p.name,{permanent:true,direction:'top',offset:[-15,-12]});

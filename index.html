@@ -1,0 +1,26 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Traditions Course Pin Map</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>html,body,#m{height:100%;margin:0;font-family:sans-serif}#bar{position:absolute;z-index:1000;top:8px;right:8px;display:flex;flex-direction:column;gap:6px}
+#bar button{font-size:16px;padding:10px 12px;border:0;border-radius:8px;background:#1f3d2b;color:#fff;box-shadow:0 1px 4px #0006}
+#hint{position:absolute;z-index:1000;bottom:20px;left:8px;right:8px;background:#fffd;padding:8px;border-radius:8px;font-size:14px;text-align:center}</style></head><body>
+<div id="m"></div><div id="bar"><button onclick="loc()">📍 Me</button><button onclick="list()">List</button><button onclick="dl()">Download</button><button onclick="copyJ()">Copy</button><button onclick="mail()">Email</button></div>
+<div id="hint">Tap the map to drop a pin and name it (e.g. Riverside 1, 5-Stand, Pavilion). Drag to move. Tap a pin to rename or delete. Pins save on this device.</div>
+<script>
+const m=L.map('m').setView([32.8979,-80.8546],15);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:19,attribution:'Imagery © Esri, Maxar, Earthstar Geographics'}).addTo(m);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:19}).addTo(m);
+let pins=JSON.parse(localStorage.getItem('tfcPins')||'[]'),mk={};
+const save=()=>localStorage.setItem('tfcPins',JSON.stringify(pins));
+function draw(p){const k=L.marker([p.lat,p.lng],{draggable:true}).addTo(m).bindTooltip(p.name,{permanent:true,direction:'top',offset:[-15,-12]});
+k.on('dragend',e=>{const l=e.target.getLatLng();p.lat=+l.lat.toFixed(6);p.lng=+l.lng.toFixed(6);save()});
+k.on('click',()=>{const n=prompt('Rename pin (leave empty and OK to delete):',p.name);if(n===null)return;if(n.trim()===''){if(confirm('Delete '+p.name+'?')){m.removeLayer(k);pins=pins.filter(x=>x!==p);save()}}else{p.name=n;k.setTooltipContent(n);save()}});mk[p.id]=k}
+pins.forEach(draw);
+m.on('click',e=>{const n=prompt('Name this pin (e.g. Riverside 1, Course 2 Stand 3, 5-Stand, Pavilion, Parking):');if(!n)return;const p={id:Date.now(),name:n,lat:+e.latlng.lat.toFixed(6),lng:+e.latlng.lng.toFixed(6),note:''};pins.push(p);save();draw(p)});
+const gj=()=>JSON.stringify({type:'FeatureCollection',features:pins.map(p=>({type:'Feature',properties:{name:p.name},geometry:{type:'Point',coordinates:[p.lng,p.lat]}}))},null,1);
+function dl(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([gj()],{type:'application/geo+json'}));a.download='traditions-pins.geojson';a.click()}
+function copyJ(){navigator.clipboard.writeText(gj()).then(()=>alert('Copied '+pins.length+' pins'))}
+function mail(){const t=pins.map(p=>p.name+': '+p.lat+', '+p.lng).join('\n');location.href='mailto:?subject='+encodeURIComponent('Traditions course pins')+'&body='+encodeURIComponent(t+'\n\nGeoJSON:\n'+gj())}
+function list(){alert(pins.length?pins.map(p=>p.name+': '+p.lat+', '+p.lng).join('\n'):'No pins yet')}
+function loc(){m.locate({setView:true,maxZoom:18});m.once('locationfound',e=>L.circleMarker(e.latlng,{radius:7,color:'#09f'}).addTo(m))}
+</script></body></html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>Tour the Course (Preview) | Traditions Field Club</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+<style>html,body{margin:0;height:100%;background:#f5f2ec;font-family:Lato,sans-serif;color:#162838}#m{position:absolute;top:56px;bottom:0;left:0;right:0;background:#efe7d2}
+header{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#162838;color:#f5f2ec}header b{font:600 24px 'Cormorant SC',serif}header span{font-size:12px;background:#a75235;padding:4px 8px;border-radius:4px}
+.st{width:34px;height:34px;border-radius:50%;color:#f5f2ec;border:3px solid #f5f2ec;font:700 15px Lato;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px #0007}
+.r{background:#a75235}.c{background:#162838}
+#modal{display:none;position:fixed;inset:0;background:#000a;z-index:2000;align-items:flex-end;justify-content:center}#modal.on{display:flex}
+#card{background:#f5f2ec;width:100%;max-width:560px;border-radius:14px 14px 0 0;padding:14px 16px 22px;max-height:92vh;overflow:auto}
+@media(min-width:700px){#modal{align-items:center}#card{border-radius:14px}}
+#card video{width:100%;border-radius:8px;background:#000}#card h2{font:600 28px 'Cormorant SC',serif;margin:4px 0}.meta{color:#4d5c47;font-size:14px}.samp{color:#a75235;font-weight:700;font-size:13px}
+#x{float:right;border:0;background:#162838;color:#fff;border-radius:50%;width:36px;height:36px;font-size:20px}</style></head><body>
+<header><b>Tour the Course</b><span>PREVIEW · SAMPLE DATA</span></header><div id="m"></div>
+<div id="modal" onclick="if(event.target===this)closeM()"><div id="card"><button id="x" onclick="closeM()">×</button><div id="body"></div></div></div>
+<script>
+const m=L.map('m',{crs:L.CRS.EPSG3857,zoomSnap:.25,attributionControl:false});
+Promise.all([fetch('map_bounds.json').then(r=>r.json()),fetch('stands.geojson').then(r=>r.json())]).then(([b,g])=>{
+ const B=[[b.south,b.west],[b.north,b.east]];L.imageOverlay('map.jpg',B).addTo(m);m.fitBounds(B);m.setMaxBounds(L.latLngBounds(B).pad(.2));
+ g.features.forEach(f=>{const p=f.properties,[lng,lat]=f.geometry.coordinates;if(!p.video)return;
+  const ic=L.divIcon({className:'',html:`<div class="st ${p.course=='Riverside'?'r':'c'}">${p.stand}</div>`,iconSize:[34,34],iconAnchor:[17,17]});
+  L.marker([lat,lng],{icon:ic}).addTo(m).on('click',()=>openM(p))})});
+function openM(p){document.getElementById('body').innerHTML=`${p.sample?'<div class="samp">SAMPLE CLIP · placeholder drone footage, not this stand</div>':''}
+<h2>${p.course} · Stand ${p.stand}</h2><div class="meta">Facing ${p.facing||'TBD'}</div>
+<video src="${p.video}" poster="${p.poster||''}" controls playsinline autoplay muted loop preload="metadata"></video><p>${p.note||''}</p>`;document.getElementById('modal').classList.add('on')}
+function closeM(){document.getElementById('modal').classList.remove('on');document.getElementById('body').innerHTML=''}
+</script></body></html>
